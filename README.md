@@ -2,11 +2,13 @@
 
 Documental independiente de [InodeAi](https://www.youtube.com/user/inodeEntertainment) sobre la historia de Amazon.
 
-Pulsa play. Dura 15:00, en formato horizontal de YouTube. La narración sale con la voz en español del dispositivo y el escenario 3D cambia con cada capítulo.
+Video para YouTube, 1280×720, 13:47: [de-la-a-a-la-nube.mp4](de-la-a-a-la-nube.mp4).
+
+Título, descripción y hashtags: [youtube.md](youtube.md).
+
+Pulsa play en la web. La narración está en `public/narracion.mp3` y el escenario 3D cambia con cada capítulo.
 
 No está afiliado a Amazon.
-
-Título, descripción y hashtags para YouTube: [youtube.md](youtube.md).
 
 ## Capítulos
 

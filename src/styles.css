@@ -67,3 +67,23 @@
     transition: none !important;
   }
 }
+
+html.exporting .export-hide,
+html.exporting .export-controls {
+  display: none !important;
+}
+
+html.exporting .export-stage {
+  position: fixed;
+  inset: 0;
+  z-index: 2;
+  width: 100vw;
+  height: 100vh;
+  max-width: none;
+  aspect-ratio: auto;
+  border-radius: 0;
+}
+
+html.exporting .export-stage > button {
+  visibility: hidden;
+}

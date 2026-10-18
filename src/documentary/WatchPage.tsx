@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Maximize, Pause, Play, RotateCcw, Volume2, VolumeX } from "lucide-react";
 import { CHANNEL, UP_NEXT, chapters } from "./chapters";
+import { narrationCues } from "./cues";
 import { StageCanvas } from "./StageCanvas";
 
 type CueFile = {
@@ -72,7 +73,7 @@ export function WatchPage() {
   const [muted, setMuted] = useState(false);
   const [volume, setVolume] = useState(1);
   const [dip, setDip] = useState(false);
-  const cues = null;
+  const cues = narrationCues;
   const [resumeAt, setResumeAt] = useState<number | null>(null);
   const speechRef = useRef({ last: -1, speaking: false, anchor: 0, est: 2, from: 0, to: 1 });
   const voiceRef = useRef<SpeechSynthesisVoice | null>(null);
@@ -93,6 +94,36 @@ export function WatchPage() {
   useEffect(() => {
     const saved = Number(localStorage.getItem(SAVE_KEY) || 0);
     if (saved > 12 && saved < 860) setResumeAt(saved);
+  }, []);
+
+  useEffect(() => {
+    if (!new URLSearchParams(window.location.search).has("export")) return;
+    document.documentElement.classList.add("exporting");
+    setResumeAt(null);
+    const timer = window.setTimeout(() => playFrom(0), 600);
+    return () => window.clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    const mark = () => {
+      const next = audio.duration;
+      if (Number.isFinite(next) && next > 1) {
+        missingRef.current = false;
+        setDuration(next);
+      }
+    };
+    if (audio.readyState >= 1) mark();
+    audio.addEventListener("loadedmetadata", mark);
+    const fail = () => {
+      missingRef.current = true;
+    };
+    audio.addEventListener("error", fail);
+    return () => {
+      audio.removeEventListener("loadedmetadata", mark);
+      audio.removeEventListener("error", fail);
+    };
   }, []);
 
   useEffect(() => {
@@ -124,7 +155,9 @@ export function WatchPage() {
       const audio = audioRef.current;
       let next = timeRef.current;
       if (playingRef.current) {
-        if (audio && !missingRef.current && !audio.paused && !audio.ended) {
+        if (audio && !missingRef.current && audio.ended) {
+          next = durationRef.current || audio.duration || next;
+        } else if (audio && !missingRef.current && !audio.paused) {
           next = audio.currentTime;
         } else if (missingRef.current) {
           next += dt;
@@ -227,6 +260,7 @@ export function WatchPage() {
   speakAtRef.current = speakAt;
 
   function ensureDrone() {
+    if (document.documentElement.classList.contains("exporting")) return;
     if (droneRef.current || muted) return;
     const ctx = new AudioContext();
     const gain = ctx.createGain();
@@ -250,6 +284,7 @@ export function WatchPage() {
 
   function playFrom(at?: number) {
     const audio = audioRef.current;
+    if (audio && Number.isFinite(audio.duration) && audio.duration > 1) missingRef.current = false;
     setEnded(false);
     if (typeof at === "number") {
       timeRef.current = at;
@@ -263,13 +298,18 @@ export function WatchPage() {
       speechRef.current.last = -1;
     };
     if (audio && !missingRef.current) {
-      void audio.play().then(() => {
+      const start = () => {
         playingRef.current = true;
         setPlaying(true);
         ensureDrone();
-      }).catch(() => {
-        missingRef.current = true;
-        startVoice();
+      };
+      if (document.documentElement.classList.contains("exporting")) audio.muted = true;
+      void audio.play().then(start).catch(() => {
+        audio.muted = true;
+        void audio.play().then(start).catch(() => {
+          missingRef.current = true;
+          startVoice();
+        });
       });
       return;
     }
@@ -340,8 +380,25 @@ export function WatchPage() {
 
   return (
     <main className="min-h-dvh bg-void text-cream">
+      <audio
+        ref={audioRef}
+        src="/narracion.mp3"
+        preload="auto"
+        playsInline
+        className="hidden"
+        onLoadedMetadata={(event) => {
+          const next = event.currentTarget.duration;
+          if (Number.isFinite(next) && next > 1) {
+            missingRef.current = false;
+            setDuration(next);
+          }
+        }}
+        onError={() => {
+          missingRef.current = true;
+        }}
+      />
       <div className="mx-auto flex w-full max-w-5xl flex-col gap-4 px-4 pb-16 pt-4 sm:px-6">
-        <header className="flex items-center justify-between gap-3">
+        <header className="export-hide flex items-center justify-between gap-3">
           <p className="font-display text-xl tracking-tight">InodeAi</p>
           <a
             href={CHANNEL.href}
@@ -355,7 +412,7 @@ export function WatchPage() {
 
         <section
           ref={playerRef}
-          className="relative aspect-video w-full overflow-hidden rounded-xl bg-ink shadow-2xl"
+          className="export-stage relative aspect-video w-full overflow-hidden rounded-xl bg-ink shadow-2xl"
           aria-label="Reproductor del documental"
         >
           <StageCanvas worldRef={worldRef} localRef={localRef} />
@@ -377,7 +434,7 @@ export function WatchPage() {
               ) : (
                 <span />
               )}
-              <div className="pointer-events-auto flex flex-col gap-1">
+              <div className="export-controls pointer-events-auto flex flex-col gap-1">
                 <label className="sr-only" htmlFor="doc-seek">
                   Posición del documental
                 </label>
@@ -460,20 +517,20 @@ export function WatchPage() {
               setResumeAt(null);
               playFrom(at);
             }}
-            className="self-start rounded-full border border-line px-4 py-2 text-sm text-cream"
+            className="export-hide self-start rounded-full border border-line px-4 py-2 text-sm text-cream"
           >
             Continuar en {fmt(resumeAt)}
           </button>
         ) : null}
 
-        <div>
+        <div className="export-hide">
           <h1 className="font-display text-3xl leading-tight text-cream sm:text-5xl">De la A a la nube</h1>
           <p className="mt-2 text-sm text-muted sm:text-base">
             La historia de Amazon en animación 3D · formato YouTube · {fmt(duration)} · documental independiente
           </p>
         </div>
 
-        <div className="flex items-center gap-3 rounded-xl bg-panel p-3">
+        <div className="export-hide flex items-center gap-3 rounded-xl bg-panel p-3">
           <div className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-copper font-display text-lg text-void">I</div>
           <div className="min-w-0 flex-1">
             <p className="font-semibold text-cream">{CHANNEL.name}</p>
@@ -484,7 +541,7 @@ export function WatchPage() {
           </a>
         </div>
 
-        <div ref={railRef} className="flex gap-2 overflow-x-auto pb-1">
+        <div ref={railRef} className="export-hide flex gap-2 overflow-x-auto pb-1">
           {timeline.chapters.map((item, itemIndex) => {
             const active = itemIndex === index;
             return (
@@ -507,7 +564,7 @@ export function WatchPage() {
           })}
         </div>
 
-        <article className="rounded-xl border border-line bg-ink p-4 sm:p-5">
+        <article className="export-hide rounded-xl border border-line bg-ink p-4 sm:p-5">
           <h2 className="font-display text-2xl text-cream">De un garaje a la infraestructura del siglo</h2>
           <p className="mt-3 text-sm leading-relaxed text-cream sm:text-base">
             Bellevue, mil novecientos noventa y cuatro. Una laptop en el asiento del copiloto, una campana que hubo que callar, una carta pidiendo paciencia y una quiebra anunciada que no llegó. Después: Prime, la nube, Kindle, un teléfono muerto al lado de una voz viva, la pandemia, el relevo de Bezos a Jassy, y una tercera máquina hecha de anuncios e inteligencia artificial.
@@ -521,7 +578,7 @@ export function WatchPage() {
           <p className="mt-4 text-xs text-muted">Documental independiente de InodeAi. No está afiliado a Amazon.</p>
         </article>
 
-        <section>
+        <section className="export-hide">
           <h2 className="font-display text-2xl text-cream">Sigue en InodeAi</h2>
           <div className="mt-3 grid gap-3 sm:grid-cols-3">
             {UP_NEXT.map((item) => (
