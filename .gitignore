@@ -1,0 +1,11 @@
+node_modules
+dist
+.nitro
+.tanstack
+.output
+.vercel
+screenshots
+artifacts
+.grok
+*.log
+.DS_Store

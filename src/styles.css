@@ -1,0 +1,69 @@
+@import "tailwindcss";
+
+@theme {
+  --color-void: #07080b;
+  --color-ink: #10141a;
+  --color-panel: #171c24;
+  --color-line: #2c333d;
+  --color-cream: #f3eadc;
+  --color-muted: #a89b8c;
+  --color-copper: #d4782a;
+  --color-glacier: #6fbfb8;
+  --font-sans: "Outfit", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Fraunces", "Iowan Old Style", Palatino, Georgia, serif;
+}
+
+@layer base {
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+
+  html,
+  body {
+    background: var(--color-void);
+    color: var(--color-cream);
+    font-family: var(--font-sans);
+  }
+
+  body {
+    margin: 0;
+    min-height: 100dvh;
+    overflow-x: hidden;
+  }
+
+  ::selection {
+    background: var(--color-copper);
+    color: var(--color-void);
+  }
+}
+
+.scrub {
+  appearance: none;
+  width: 100%;
+  height: 0.35rem;
+  border-radius: 999px;
+  background: var(--color-line);
+  accent-color: var(--color-copper);
+}
+
+.scrub::-webkit-slider-thumb {
+  appearance: none;
+  height: 1rem;
+  width: 1rem;
+  border-radius: 999px;
+  background: var(--color-cream);
+  border: none;
+}
+
+.vignette {
+  background:
+    linear-gradient(to top, var(--color-void) 0%, transparent 28%),
+    radial-gradient(ellipse at center, transparent 45%, var(--color-void) 100%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dip {
+    transition: none !important;
+  }
+}
