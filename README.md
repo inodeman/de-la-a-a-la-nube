@@ -6,6 +6,8 @@ Pulsa play. Dura 15:00, en formato horizontal de YouTube. La narración sale con
 
 No está afiliado a Amazon.
 
+Título, descripción y hashtags para YouTube: [youtube.md](youtube.md).
+
 ## Capítulos
 
 1. El frío — 1994
